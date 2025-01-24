@@ -4,12 +4,14 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
+
 from API_key import Api_token
 import streamlit as st
 
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = Api_token
 # llm
 hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
-llm = HuggingFaceEndpoint(repo_id=hf_model, huggingfacehub_api_token = Api_token)
+llm = HuggingFaceEndpoint(repo_id=hf_model)
 
 # embeddings
 embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
