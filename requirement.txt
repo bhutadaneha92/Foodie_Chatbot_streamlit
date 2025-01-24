@@ -1,4 +1,4 @@
 langchain
-langchain-huggingface
-langchain-core
+langchain_huggingface
+langchain_core
 faiss-cpu
