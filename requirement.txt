@@ -1,0 +1,4 @@
+langchain
+langchain-huggingface
+langchain-core
+faiss-cpu
