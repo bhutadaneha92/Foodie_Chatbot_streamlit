@@ -5,10 +5,11 @@ from langchain.chains import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
 
-from API_key import Api_token
+#from API_key import Api_token
 import streamlit as st
 import os
-
+# Retrieve the API key from environment variables
+Api_token = os.getenv("HF_TOKEN")
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = Api_token
 
 # llm
