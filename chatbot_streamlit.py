@@ -9,8 +9,10 @@ from langchain.chains.combine_documents.stuff import create_stuff_documents_chai
 import streamlit as st
 import os
 # Retrieve the API key from environment variables
-Api_token = os.getenv("HF_TOKEN")
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = Api_token
+#Api_token = os.getenv("HF_TOKEN")
+#os.environ["HUGGINGFACEHUB_API_TOKEN"] = Api_token
+
+Api_token = st.secrets["Api_token"]
 
 # llm
 hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
