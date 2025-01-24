@@ -1,23 +1,25 @@
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.chains import RetrievalQA
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from huggingface_hub import InferenceApi
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever
+from langchain.chains.retrieval import create_retrieval_chain
+from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
 from API_key import Api_token
 import streamlit as st
 
 # llm
 hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
-llm = InferenceApi(repo_id=hf_model, token=Api_token)
+llm = HuggingFaceEndpoint(repo_id=hf_model, huggingfacehub_api_token = Api_token)
 
 # embeddings
 embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
 embeddings_folder = "content/"
 
-embeddings = HuggingFaceEmbeddings(model_name=embedding_model, cache_folder=embeddings_folder)
+embeddings = HuggingFaceEmbeddings(model_name=embedding_model,
+                                   cache_folder=embeddings_folder)
 
 # load Vector Database
+# allow_dangerous_deserialization is needed. Pickle files can be modified to deliver a malicious payload that results in execution of arbitrary code on your machine
 vector_db = FAISS.load_local("content/faiss_index_chatbot", embeddings, allow_dangerous_deserialization=True)
 
 # retriever
@@ -44,15 +46,19 @@ prompt = ChatPromptTemplate.from_messages([
 # bot with memory
 @st.cache_resource
 def init_bot():
-    document_chain = StuffDocumentsChain(llm, prompt)
-    return RetrievalQA(llm=llm, retriever=retriever, combine_documents_chain=document_chain)
+    doc_retriever = create_history_aware_retriever(llm, retriever, prompt)
+    doc_chain = create_stuff_documents_chain(llm, prompt)
+    return create_retrieval_chain(doc_retriever, doc_chain)
 
 rag_bot = init_bot()
 
+
 ##### streamlit #####
+
 st.title("A Pioneer of Food Remedies")
 
 # Initialise chat history
+# Chat history saves the previous messages to be displayed
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -62,26 +68,26 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # React to user input
-if user_input := st.chat_input("Curious minds wanted!"):
+if prompt := st.chat_input("Curious minds wanted!"):
 
     # Display user message in chat message container
-    st.chat_message("human").markdown(user_input)
+    st.chat_message("human").markdown(prompt)
 
     # Add user message to chat history
-    st.session_state.messages.append({"role": "human", "content": user_input})
+    st.session_state.messages.append({"role": "human", "content": prompt})
 
     # Begin spinner before answering question so it's there for the duration
     with st.spinner("Going down the rabbithole for answers..."):
 
         # send question to chain to get answer
-        answer = rag_bot({"query": user_input})
+        answer = rag_bot.invoke({"input": prompt, "chat_history": st.session_state.messages, "context": retriever})
 
-        # extract answer from response
-        response = answer["result"]
+        # extract answer from dictionary returned by chain
+        response = answer["answer"]
 
         # Display chatbot response in chat message container
         with st.chat_message("assistant"):
             st.markdown(response)
 
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content":  response})
